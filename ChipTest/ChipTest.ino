@@ -16,15 +16,19 @@
 #include <xSL01.h>
 #include <xSW01.h>
 #include <xSI01.h>
+#include <xSN01.h>
 
 const int DELAY_TIME = 1000;
 
 xSL01 SL01;
 xSW01 SW01;
 xSI01 SI01;
+xSN01 SN01;
 
 #define PRINT_SPEED 250
 static unsigned long lastPrint = 0;
+
+long tick_Print = 0;
 
 void setup() {
   // Start the Serial Monitor
@@ -45,6 +49,9 @@ void setup() {
   // Start the  SW01 Sensor
   SW01.begin();
 
+  // Start the SN01 Sensor
+  SN01.begin();
+
   // Delayy for Sensor to normalise
   delay(DELAY_TIME);
   
@@ -59,12 +66,20 @@ void loop() {
   float uv;
   uv = 0;
 
+  // Create a variable to store the data read from SN01
+  String time;
+  long latitude = 0;
+  long longitude = 0;
+  String date;
+
   // Poll Sensor for collect data
   SL01.poll();
   // Read and calculate data from SW01 sensor
   SW01.poll();
   //read data from SI01
   SI01.poll();
+  // Poll the sensor to read all available data
+  SN01.poll();
 
   // Request SL01 to return calculated UVB intensity
   uv = SL01.getUVA();
@@ -110,7 +125,37 @@ void loop() {
     printAttitude(); // Print Roll, Pitch and G-Force
     Serial.println();
     lastPrint = millis(); // Update lastPrint time
-  }  
+  }
+
+     // Use a timer to print data once a second
+    if((millis() - tick_Print) > 1000){
+
+      // Get the date from GPS
+    date = SN01.getDate();
+    
+    // Get the time from the GPS 
+    time = SN01.getTime();
+
+    // Get the latitude from GPS
+    latitude = SN01.getLatitude();
+
+    // Get the longitude from GPS
+    longitude = SN01.getLongitude();
+    
+    // Display the recorded data over the serial monitor
+    Serial.print("GPS Time: ");
+    Serial.println(time);
+    Serial.print("GPS Date: ");
+    Serial.println(date);
+    Serial.print("GPS Latitude: ");
+    Serial.println(latitude);
+    Serial.print("GPS longitude: ");
+    Serial.println(longitude);
+
+    Serial.println();
+    
+    tick_Print = millis();
+  }
   
   // Small delay between sensor reads
   delay(DELAY_TIME);
